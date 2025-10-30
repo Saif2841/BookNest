@@ -1,18 +1,21 @@
 // src/auth/auth.controller.ts
-import { Body, Controller, Post } from '@nestjs/common';
+import { Controller, Post, UseGuards, Request } from '@nestjs/common';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { ApiTags } from '@nestjs/swagger';
-
-class LoginDto { email: string; password: string; }
+import { LocalAuthGuard } from 'src/common/guards/local-auth.guard';
+import { LoginDto } from 'src/users/dto/login.dto';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
+  // ✅ Use the LocalAuthGuard so Passport handles validation
+  @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Body() dto: LoginDto) {
-    const user = await this.auth.validateUser(dto.email, dto.password);
-    return this.auth.sign(user);
+  @ApiBody({ type: LoginDto }) // 👈 shows 'email' and 'password' in Swagger
+  async login(@Request() req) {
+    // req.user is set by LocalStrategy.validate()
+    return this.authService.sign(req.user);
   }
 }
